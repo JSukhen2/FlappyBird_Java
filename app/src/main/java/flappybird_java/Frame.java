@@ -3,22 +3,24 @@ package flappybird_java;
 import javax.swing.*;
 
 import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
-
+import java.util.Timer;
+import java.util.TimerTask;
 import java.awt.*;
 import java.awt.event.*;
 
 public class Frame extends JFrame {
-
-    BackGroundPanel pnlBackground1 = new BackGroundPanel();
-    BackGroundPanel pnlBackground2 = new BackGroundPanel();
-    BackGroundPanel[] pnlarrBackground = {pnlBackground1, pnlBackground2};
+    private BackGroundPanel pnlBackground1 = new BackGroundPanel();
+    private BackGroundPanel pnlBackground2 = new BackGroundPanel();
+    private BackGroundPanel[] pnlarrBackground = {pnlBackground1, pnlBackground2};
+    private Timer timer = new Timer();
+    private TimerTask timerTask;
     // BackGroundPanel[] pnlarrBackground = new BackGroundPanel[2];
     
     //Variable
     private float sizeMultiply = 1.0f; //크기 배율
     private final int ORIGIN_SIZE = 512;
 
-    public Frame(){
+    public Frame(){ // Unity - OnCreate (Start 함수와 같음)
 
     // #창에 대한 기본 세팅
     setTitle("Flappy Bird");
@@ -28,17 +30,15 @@ public class Frame extends JFrame {
 
     // #창에 대한 제약
     setMinimumSize( new Dimension(256 , 256)); // 최소 창 크기 제한 걸어주기
-    
-    // #패널 백그라운드 크기 세팅 (바탕화면)
-    // for ( int i = 0; i<pnlarrBackground.length; i++ ){
-    //     pnlarrBackground[i].setSize(288,512);
-    //     pnlarrBackground[i].setLocation(pnlLocation,0);
-    //     pnlLocation += 288;
-
-    //     add(pnlarrBackground[i]);
-    // }
     add(pnlBackground1);
 
+    timerTask = new TimerTask() {
+        @Override
+        public void run(){
+            pnlBackground1.update();
+        }
+    };
+    timer.scheduleAtFixedRate(timerTask, 0, 10);
     }
 
 
@@ -46,6 +46,9 @@ public class Frame extends JFrame {
         return sizeMultiply;
     }
 
+    public BackGroundPanel getBackGroundPanel(){ //get
+        return pnlBackground1;
+    }
     
     @Override
     public void paint(Graphics g){

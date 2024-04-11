@@ -20,4 +20,14 @@ public class Main {
     public static Frame getFrame(){ // Frame에 대한 내용을 주는 함수
         return frame;
     }
+
+    public static int Cilmp(int number, int min, int max){
+        if (number < min){
+            return min;
+        }
+        else if (number > max){
+            return max;
+        }
+        return number;
+    }
 }
