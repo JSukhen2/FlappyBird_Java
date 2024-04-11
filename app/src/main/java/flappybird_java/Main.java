@@ -3,8 +3,21 @@
  */
 package flappybird_java;
 
+import java.net.URL;
+import javax.swing.*;
+import java.awt.*;
+
 public class Main {
+    private static Frame frame;
     public static void main(String[] args) {
-        new Frame();
+        frame = new Frame();
+    }
+
+    public static URL getPath(String path) { // 절대 경로
+        return Main.class.getResource(path);
+    }
+
+    public static Frame getFrame(){ // Frame에 대한 내용을 주는 함수
+        return frame;
     }
 }
