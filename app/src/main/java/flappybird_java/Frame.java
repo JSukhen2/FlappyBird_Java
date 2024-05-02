@@ -1,95 +1,97 @@
 package flappybird_java;
 
-import javax.swing.*;
-
-import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.awt.*;
 import java.awt.event.*;
+import javax.swing.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class Frame extends JFrame {
-    private BackGroundPanel pnlBackground1 = new BackGroundPanel();
-    private BackGroundPanel pnlBackground2 = new BackGroundPanel();
-    private BackGroundPanel[] pnlarrBackground = {pnlBackground1, pnlBackground2};
+    private BackgroundPanel pnlGame = new BackgroundPanel();
     private Timer timer = new Timer();
     private TimerTask timerTask;
-    // BackGroundPanel[] pnlarrBackground = new BackGroundPanel[2];
-    
+
+    private static Dimension scrnSize = Toolkit.getDefaultToolkit().getScreenSize();
+    private static Rectangle winSize = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+    private static int taskBarHeight = (int)( scrnSize.getHeight() - winSize.getHeight() );
+
+    //Components
+    Bird bird = new Bird();
+
     //Variable
-    private float sizeMultiply = 1.0f; //크기 배율
+    private float sizeMultiply = 1.0f;
     private final int ORIGIN_SIZE = 512;
 
-    public Frame(){ // Unity - OnCreate (Start 함수와 같음)
+    public Frame() {
+        //Initialize
+        setTitle("Flappy Bird In Java");
+        setSize(513, 512);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setVisible(true);
+        setMinimumSize( new Dimension(256, 256) );
+        setLayout( new CardLayout() );
 
-    // #창에 대한 기본 세팅
-    setTitle("Flappy Bird");
-    setSize(512,512);
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    setVisible(true);
+        //Game Screen
+        pnlGame.setLayout(null);
+        bird.setLocation(100, 100);
+        bird.setSize(100, 100);
+        pnlGame.add(bird);
 
-    // #창에 대한 제약
-    setMinimumSize( new Dimension(256 , 256)); // 최소 창 크기 제한 걸어주기
-    add(pnlBackground1);
+        add(pnlGame, "Game");
+        pnlGame.addMouseListener( new MyMouseListener() );
 
-    timerTask = new TimerTask() {
-        @Override
-        public void run(){
-            pnlBackground1.update();
-        }
-    };
-    timer.scheduleAtFixedRate(timerTask, 0, 10);
-    }
+        //Timer
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                pnlGame.update();
+            }
+        };
+        timer.scheduleAtFixedRate(timerTask, 0, 10);
 
+        //5주차
+        Timer pipeSpawnTimer = new Timer();
+        TimerTask pipeSpawnTimerTask = new TimerTask() {
+            @Override
+            public void run() {
+                int randY = (int)(Math.random() * 472);
+                int clampY = Main.clamp(randY, PipeSpawner.GAP +
+                    Pipe.MIN_HEIGHT, 472 - PipeSpawner.GAP - Pipe.MIN_HEIGHT);
+                PipeSpawner.spawnPipe(pnlGame, clampY);
+            }
+        };
+        pipeSpawnTimer.scheduleAtFixedRate(pipeSpawnTimerTask, PipeSpawner.SPAWN_DELAY, PipeSpawner.SPAWN_DELAY);
+    } //Constructor
 
-    public float getSizeMultiply(){ // SizeMultiply 값을 다른 곳으로 보내는 함수
+    public float getSizeMultiply() {
         return sizeMultiply;
     }
 
-    public BackGroundPanel getBackGroundPanel(){ //get
-        return pnlBackground1;
+    public int getTaskBarHeight() {
+        return taskBarHeight;
     }
-    
+
     @Override
-    public void paint(Graphics g){
+    public void paint(Graphics g) {
         super.paint(g);
         int width = getWidth();
         int height = getHeight();
 
-        if (width > height){
-            setSize(height,height);
+        if (width > height) {
+            setSize(height, height);
         }
         else {
-            setSize(width,width);
+            setSize(width, width);
         }
-        sizeMultiply = (float)getWidth() / (float)ORIGIN_SIZE;
+        sizeMultiply = (float)(getHeight() - taskBarHeight) / (float)(ORIGIN_SIZE - taskBarHeight);
     }
 
-    /*private class FrameSizeListener extends ComponentAdapter{
-        @Override // 성능면에서 좋다
-        public void componentResized(ComponentEvent e) {
-            int width = getWidth();
-            int height = getHeight();
-
-            //  *** width와 height 중 작은 값을 뽑고, setSize() 함수에 w , h 변수에 값을 넣는다.
-
-            if (width > height){
-                setSize(height,height);
-            }
-            else {
-                setSize(width,width);
-            }
-
-            sizeMultiply = (float)getWidth() / (float)ORIGIN_SIZE;
-
-            int fixedWidth = (int)(288 * sizeMultiply); // 수정된 내용
-            int fixedHeight = (int)(512 * sizeMultiply);
-
-            pnlBackground1.setSize(fixedWidth,fixedHeight);
-
-            System.out.println(sizeMultiply);
-
-            repaint(); // 화면 크기 변경시 검정색으로 변하는 것을 덜 하게 해줌
+    //Listeners
+    private class MyMouseListener extends MouseAdapter {
+        @Override
+        public void mousePressed(MouseEvent e) {
+            bird.jump();
         }
-    }*/
-}
+    }
+    
+} //Frame class

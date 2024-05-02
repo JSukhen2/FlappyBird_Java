@@ -1,110 +1,178 @@
 package flappybird_java;
 
-import javax.swing.*;
-import java.awt.event.*;
-import com.google.common.graph.Graph;
-
 import java.awt.*;
+import javax.swing.*;
 
-public abstract class GameObject extends JPanel { // abstract  -> 추상
-    // 캐릭터, 파이프 Update 가 필요한 내용
-    abstract void Update();
-}
+public abstract class GameObject extends JLabel {
+    private final Image image;
+    private final int IMAGE_WIDTH, IMAGE_HEIGHT;
+    protected int x;
+    protected int y;
 
-class BackGroundPanel extends JPanel {
-    /* # 무엇을 만들 것 인가 ? (목표)
-     * # 우리가 무엇을 가져올 수 있는가 ? (입력)
-     * # 가공을 하여 어떤 것을 줄 것인가 ? (출력)
-     */
-    //ImageIcon imgBackground = new ImageIcon( Main.getPath("/sprites/background.png") ); // 메모리 낭비중
+    public GameObject(Image image) {
+        super();
+        this.image = image;
+        setOpaque(false);
+
+        IMAGE_WIDTH = image.getWidth(null);
+        IMAGE_HEIGHT = image.getHeight(null);
+    }
+
+    public void update() {
+        float sizeMultiply = Main.getSizeMultiply();
+        setSize( (int)(IMAGE_WIDTH * sizeMultiply), (int)(IMAGE_HEIGHT * sizeMultiply) );
+    }
+
+    //5주차
+    public int getImageWidth() {
+        return image.getWidth(null);
+    }
+
+    public int getImageHeight() {
+        return image.getHeight(null);
+    }
+    //
+
+    @Override
+    public void setLocation(int x, int y) {
+        this.x = x;
+        this.y = y;
+        int fixedX = (int)( x * Main.getSizeMultiply() );
+        int fixedY = (int)( y * Main.getSizeMultiply() );
+        super.setLocation(fixedX, fixedY);
+    }
+
+    @Override
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        g.drawImage(image, 0, 0, getWidth(), getHeight(), this);
+    }
+} //GameObject class
+
+class BackgroundPanel extends JPanel {
     private Image imgBackground = new ImageIcon( Main.getPath("/sprites/background.png") ).getImage();
-    private final Integer WIDTH = imgBackground.getWidth(this);
-    private final Integer HEIGHT = imgBackground.getHeight(this);
-    private Bird bird = new Bird();
-    
-    public BackGroundPanel(){
-        setLayout(null);
+    private final int WIDTH = imgBackground.getWidth(null);
+    private final int HEIGHT = imgBackground.getHeight(null);
 
-        bird.setLocation(100, 200);
-        bird.setSize( bird.getWidth(),bird.getHEIGHT() );
-        add(bird);
-
-        addMouseListener( new MyMouseListener() );
-    }
-
-    public void update(){
-        bird.Update();
+    public void update() {
+        for ( Component k : getComponents() ) {
+            GameObject obj = (GameObject)k;
+            obj.update();
+        }
     }
 
     @Override
-    public void paintComponent(Graphics g){
-        super.paintComponent(g);
-        Frame frame = Main.getFrame();
-
-        float sizeMultiply = frame.getSizeMultiply();
-        int fixedWidth = (int)(WIDTH * sizeMultiply); // 수정된 내용
-        int fixedHeight = (int)(HEIGHT * sizeMultiply);
-        g.drawImage(imgBackground, 0 , 0 ,fixedWidth, fixedHeight, this);
-
-        for (int i = 0; i<frame.getWidth() / fixedWidth + 1; i++){
-            g.drawImage(imgBackground, i * fixedWidth, 0, fixedWidth, fixedHeight, this);
-        }
-    }
-
-    private class MyMouseListener extends MouseAdapter {
-        @Override
-        public void mousePressed(MouseEvent e){
-            bird.setJumpPoWER(-10);
-        }
-    }
-}
-// 개체 - Bird
-class Bird extends GameObject{
-    private Image imgBird = new ImageIcon( Main.getPath("/sprites/bird_midflap.png") ).getImage();
-    private final Integer WIDTH = imgBird.getWidth(this);
-    private final Integer HEIGHT = imgBird.getHeight(this);
-    private int jumpPower = -1;
-    private final int MAX_JUMP_POWER = 2;
-    private float cooltime = 0; // 마우스 클릭
-    private int y = getY();
-
-    public void Update(){
-        y = Main.Cilmp(y + jumpPower, getHeight(), Main.getFrame().getBackGroundPanel().getHeight() );
-        setLocation( 100, y - getHeight() );
-
-        if (jumpPower < MAX_JUMP_POWER){
-            jumpPower += 1;
-        }
-    }
-
-    public int getWidth(){
-        return WIDTH;
-    }
-    public int getHEIGHT(){
-        return HEIGHT;
-    }
-    public void setJumpPoWER(int jumpPower){
-        this.jumpPower = jumpPower;
-    }
-    @Override
-    public void paintComponent(Graphics g){
+    public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        Frame frame = Main.getFrame();
-        float sizeMultiply = frame.getSizeMultiply();
+        float sizeMultiply = Main.getFrame().getSizeMultiply();
         int fixedWidth = (int)(WIDTH * sizeMultiply);
         int fixedHeight = (int)(HEIGHT * sizeMultiply);
-        g.drawImage(imgBird, 0 , 0 ,fixedWidth, fixedHeight, this);
-        setSize(fixedWidth,fixedHeight);
-    }
-}
-// 개체 - Pipe
-class Pile extends GameObject{
-    private Image imgPipe = new ImageIcon( Main.getPath("/sprites/bird_midflap.png") ).getImage();
-    private final Integer WIDTH = imgPipe.getWidth(this);
-    private final Integer HEIGHT = imgPipe.getHeight(this);
 
-    public void Update(){
-        
+        g.drawImage(imgBackground, 0, 0, fixedWidth, fixedHeight, this);
+    }
+} //BackgroundPanel class
+
+
+class Bird extends GameObject {
+    private final static Image image = new ImageIcon( Main.getPath("/sprites/bird_midflap.png") ).getImage();
+
+    private float jump = 0f;
+    private final float GRAVITY = 3f;
+    private final float G_FORCE = 0.5f;
+
+    public Bird() {
+        super(image);
+    }
+
+    @Override
+    public void update() {
+        super.update();
+
+        if ( jump > -GRAVITY) {
+            jump -= G_FORCE;
+        }
+        else{
+            jump = -GRAVITY;
+        }
+
+        y = Main.clamp( (int)(y - jump), 0, 472 - image.getHeight(null) );
+        setLocation(x, y);
+    }
+
+    public void jump() {
+        jump = 10;
+    }
+} //Bird class
+
+class Pipe extends GameObject {
+    private int speed = 2;
+    public static final int MIN_HEIGHT = 50;
+
+    public Pipe(Image image) {
+        super(image);
+    }
+
+    @Override
+    public void update() {
+        super.update();
+
+        //Move
+        x -= speed;
+        setLocation(x, y);
+
+        //Remove
+        if (x <= -50) {
+            getParent().remove(this);
+        }
+    }
+} //Pipe class
+
+class PipeDown extends Pipe {
+    private final static Image image = new ImageIcon( Main.getPath("/sprites/pipe_down.png") ).getImage();
+
+    public PipeDown() {
+        super(image);
+    }
+
+    //5주차
+    @Override
+    public void setLocation(int x, int y) {
+        int clampY = Main.clamp(y, -image.getHeight(null) + Pipe.MIN_HEIGHT, 0);
+        super.setLocation(x, clampY);
+    }
+    //
+}
+
+class PipeUp extends Pipe {
+    private final static Image image = new ImageIcon( Main.getPath("/sprites/pipe_up.png") ).getImage();
+
+    public PipeUp() {
+        super(image);
+    }
+
+    //5주차
+    @Override
+    public void setLocation(int x, int y) {
+        int clampY = Main.clamp(y, 472 - image.getHeight(null), 472 - Pipe.MIN_HEIGHT);
+        super.setLocation(x, clampY);
+    }
+    //
+}
+
+//5주차
+class PipeSpawner {
+    public static final int SPAWN_DELAY = 1500;
+    public static final int GAP = 100;
+
+    public static void spawnPipe(BackgroundPanel root, int y) {
+        PipeUp pipeUp = new PipeUp();
+        PipeDown pipeDown = new PipeDown();
+
+        pipeUp.setLocation(600, y + GAP);
+        pipeDown.setLocation( 600, y - GAP - pipeDown.getImageHeight() );
+
+        root.add(pipeUp);
+        root.add(pipeDown);
     }
 }
