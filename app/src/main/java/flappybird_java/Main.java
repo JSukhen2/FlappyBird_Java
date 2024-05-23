@@ -7,6 +7,7 @@ public class Main {
 
     public static void main(String[] args) {
         frame = new Frame();
+        frame.initGame();
     }
 
     public static URL getPath(String path) {

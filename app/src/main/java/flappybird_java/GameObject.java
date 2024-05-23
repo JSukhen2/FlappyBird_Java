@@ -2,6 +2,8 @@ package flappybird_java;
 
 import java.awt.*;
 import javax.swing.*;
+import java.awt.event.*;
+
 import java.awt.image.*;
 import java.util.stream.Stream;
 
@@ -92,19 +94,43 @@ class BackgroundPanel extends JPanel {
 
 
 class Bird extends GameObject {
-    private final static Image image = new ImageIcon( Main.getPath("/sprites/bird_midflap.png") ).getImage();
+    private final static Image[] aryImage = {
+        new ImageIcon( Main.getPath("/sprites/bird_downflap.png") ).getImage(),
+        new ImageIcon( Main.getPath("/sprites/bird_midflap.png") ).getImage(),
+        new ImageIcon( Main.getPath("/sprites/bird_upflap.png") ).getImage() 
+    };
 
     private float jump = 0f;
     private final float GRAVITY = 3f;
     private final float G_FORCE = 0.5f;
+    private int imageChangeCount = 0;
+    private int imageIdx = 0;
 
     public Bird() {
-        super(image);
+        super(aryImage[0]);
     }
 
     @Override
     public void update() {
         super.update();
+
+        //Animation
+        Image image = aryImage[imageIdx];
+        imageChangeCount++;
+        if (imageChangeCount >= 10){
+            imageChangeCount -= 10;
+            imageIdx++;
+
+            if(imageIdx >= aryImage.length){
+                imageIdx -= aryImage.length;
+            }
+            image = aryImage[imageIdx];
+            setImage(image);
+        }
+
+        if (Main.getFrame().isGameStart() == false){
+            return;
+        }
 
         if ( jump > -GRAVITY) {
             jump -= G_FORCE;
@@ -115,10 +141,14 @@ class Bird extends GameObject {
 
         y = Main.clamp( (int)(y - jump), 0, 472 - image.getHeight(null) );
         setLocation(x, y);
+
+        if (y >= 472 - image.getHeight(null)){
+            Main.getFrame().gameOver();
+        }
     }
 
     public void jump() {
-        if ( Main.getFrame().isgameOver() == false) {
+        if ( Main.getFrame().isGameOver() == false) {
             jump = 10;
         }
     }
@@ -140,8 +170,7 @@ class Pipe extends GameObject {
     public void update() {
         super.update();
         //Move
-
-        if (Main.getFrame().isgameOver() == false){
+        if (Main.getFrame().isGameStart() && Main.getFrame().isGameOver() == false){
             x -= speed;
         }
         setLocation(x, y);
@@ -153,7 +182,7 @@ class Pipe extends GameObject {
 
         //Collision 함수로 만들면 좋음
         // || -> OR
-        if ( Main.getFrame().isgameOver() || getX() + getWidth() < bird.getX() ){
+        if ( Main.getFrame().isGameOver() || getX() + getWidth() < bird.getX() ){
             return;
         }
         if ( isCollided(bird) ){
@@ -210,7 +239,7 @@ class PipeSpawner {
     public static final int GAP = 100;
 
     public static void spawnPipe(BackgroundPanel root, int y) {
-        if (Main.getFrame().isgameOver()){
+        if (Main.getFrame().isGameOver()){
             return;
         }
         PipeUp pipeUp = new PipeUp();
@@ -270,6 +299,12 @@ class ScoreText extends GameObject {
         updateImage();
     }
 
+    // 점수 초기화 하는 메소드
+    public void resetScore(){
+        score = 0;
+        updateImage();
+    }
+
     public void addScore(int score) {
         try{
             this.score += score;
@@ -300,5 +335,55 @@ class ScoreText extends GameObject {
         graphics.dispose();
 
         setImage( new ImageIcon(newImage).getImage() );
+    }
+} // ScoreText
+
+
+
+class Screen extends GameObject{
+
+    public Screen(Image image) {
+        super(image);
+    }
+    
+    @Override
+    public void update(){
+        super.update(); // 안하면 위에있는거 다 오버라이드로 실행 안시킴 **
+        setLocation(x, y); // 늘리고 줄여도 창 유지
+    }
+}
+
+class StartScreen extends Screen {
+    private static final Image image = new ImageIcon( Main.getPath("/sprites/main.png")).getImage(); 
+    // Main.getPath() 상대 경로(위치) , getImage() 이미지 가져오기
+    // ImageIcon 으로 경로로 가서 아이콘으로 만든 후 , 이미지로 다시 만드는 방법
+
+    public StartScreen(){
+        super(image);
+    }
+}
+class GameOverScreen extends Screen {
+    private static final Image image = new ImageIcon( Main.getPath("/sprites/game_over.png")).getImage();
+    
+    public GameOverScreen(){
+        super(image);
+        setVisible(false);
+    }
+}
+
+class ResetButton extends Screen {
+    private static final Image image = new ImageIcon(Main.getPath("/sprites/play.png")).getImage();
+
+    public ResetButton(){
+        super(image);
+        setVisible(false);
+        addMouseListener( new MyMouseAdapter() );
+    }
+
+    private class MyMouseAdapter extends MouseAdapter{
+        @Override
+        public void mousePressed(MouseEvent e){
+            Main.getFrame().resetGame();
+        }
     }
 }

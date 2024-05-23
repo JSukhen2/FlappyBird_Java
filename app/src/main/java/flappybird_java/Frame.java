@@ -21,11 +21,17 @@ public class Frame extends JFrame {
     // Components
     private Bird bird = new Bird();
     private ScoreText scoreText = new ScoreText();
+    private StartScreen startScreen = new StartScreen();
+    private GameOverScreen gameOverScreen = new GameOverScreen();
+    private ResetButton resetButton = new ResetButton();
 
     // Variable
     private float sizeMultiply = 1.0f;
     private final int ORIGIN_SIZE = 512;
     private boolean flagGameOver = false;
+    private boolean flagGameStart = false;
+    private int jumpDelay = 0;
+    private final int JUMP_DELAY = 10;
 
     public Frame() {
         // Initialize
@@ -38,16 +44,35 @@ public class Frame extends JFrame {
 
         // Game Screen
         pnlGame.setLayout(null);
+
+        startScreen.setLocation(164, 123);
+        startScreen.setSize(0,0);
+        pnlGame.add(startScreen);
+
+        gameOverScreen.setLocation(160,145);
+        gameOverScreen.setSize(0,0);
+        pnlGame.add(gameOverScreen);
+
+        resetButton.setLocation(204,276);
+        resetButton.setSize(0,0);
+        pnlGame.add(resetButton);
+
         scoreText.setLocation(0, 0);
         scoreText.setSize(0, 0);
         pnlGame.add(scoreText);
 
-        bird.setLocation(100, 100);
+        bird.setLocation(100, 224);
         bird.setSize(100, 100);
         pnlGame.add(bird);
 
         add(pnlGame, "Game");
+
+        // Space Bar & Mouse left Click
+        pnlGame.setFocusable(true);
+        pnlGame.requestFocus();
+        pnlGame.addKeyListener(new MyKeyAdapter());
         pnlGame.addMouseListener(new MyMouseListener());
+        
 
         // Timer
         timerTask = new TimerTask() {
@@ -58,18 +83,6 @@ public class Frame extends JFrame {
         };
         timer.scheduleAtFixedRate(timerTask, 0, 10);
 
-        // 5주차
-        pipeSpawnTimer = new Timer();
-        pipeSpawnTimerTask = new TimerTask() {
-            @Override
-            public void run() {
-                int randY = (int) (Math.random() * 472);
-                int clampY = Main.clamp(randY, PipeSpawner.GAP +
-                        Pipe.MIN_HEIGHT, 472 - PipeSpawner.GAP - Pipe.MIN_HEIGHT);
-                PipeSpawner.spawnPipe(pnlGame, clampY);
-            }
-        };
-        pipeSpawnTimer.scheduleAtFixedRate(pipeSpawnTimerTask, PipeSpawner.SPAWN_DELAY, PipeSpawner.SPAWN_DELAY);
     } // Constructor
 
     public float getSizeMultiply() {
@@ -85,17 +98,82 @@ public class Frame extends JFrame {
     }
 
     public void gameOver() {
+        if (flagGameOver){
+            return;
+        }
+
         flagGameOver = true;
         pipeSpawnTimer.cancel();
-        System.out.println("Game Over");
+
+        gameOverScreen.setVisible(true);
+        resetButton.setVisible(true);
     }
 
-    public boolean isgameOver() {
+    public boolean isGameOver() {
         return flagGameOver;
     }
 
     public void addScore() {
         scoreText.addScore(1);
+    }
+
+    public void startGame(){
+        if(flagGameStart){
+            return;
+        }
+
+        flagGameStart = true;
+        flagGameOver = false;
+        startScreen.setVisible(false);
+
+        pipeSpawnTimer = new Timer();
+        pipeSpawnTimerTask = new TimerTask() {
+
+            @Override
+            public void run() {
+                int randY = (int) (Math.random() * 472);
+                int clampY = Main.clamp(randY, PipeSpawner.GAP +
+                        Pipe.MIN_HEIGHT, 472 - PipeSpawner.GAP - Pipe.MIN_HEIGHT);
+                PipeSpawner.spawnPipe(pnlGame, clampY);
+            }
+        };
+        pipeSpawnTimer.scheduleAtFixedRate(pipeSpawnTimerTask, 0, PipeSpawner.SPAWN_DELAY);
+    }
+
+    public void resetGame(){
+        if (flagGameOver == false){
+            return;
+        }
+        flagGameStart = false;
+
+        pipeSpawnTimer.cancel();
+        pipeSpawnTimer.purge(); // 타이머 자체를 없앤다.
+
+        startScreen.setVisible(true);
+        gameOverScreen.setVisible(false);
+        resetButton.setVisible(false);
+        scoreText.resetScore();
+
+        bird.setLocation(100, 224);
+
+        for ( Component k : pnlGame.getComponents()){ // Object < Component 가 최상위
+            try{
+                Pipe pipe = (Pipe)k; // 다운캐스팅
+                pnlGame.remove(pipe);
+            }catch(Exception e){
+            }
+        }
+        // 지우고 다시 그리는 함수들 불러오기
+        repaint();
+        revalidate();
+    }
+
+    public void initGame(){ // 호환성
+        pnlGame.update();
+    }
+
+    public boolean isGameStart(){ // Checker true & false
+        return flagGameStart;
     }
 
     @Override
@@ -105,7 +183,7 @@ public class Frame extends JFrame {
         int height = getHeight();
 
         if (width > height) {
-            setSize(height, height);
+            setSize(height, height);    
         } else {
             setSize(width, width);
         }
@@ -116,17 +194,22 @@ public class Frame extends JFrame {
     private class MyMouseListener extends MouseAdapter {
         @Override
         public void mousePressed(MouseEvent e) {
+            startGame();
             bird.jump();
         }
     }
-
-    public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == 13) {
-
-        }
-    }
-
     public class MyKeyAdapter extends KeyAdapter {
         //#TODO: 스페이스바를 눌렀을 때 새가 점프하도록 구현
+        @Override
+        public void keyPressed(KeyEvent e){
+            switch (e.getKeyCode()) {
+                case KeyEvent.VK_SPACE:
+                if (jumpDelay >= JUMP_DELAY){
+                    bird.jump();
+                    
+                }
+                    break;
+            }       
+        }
     }
 } // Frame class
